@@ -1,0 +1,50 @@
+{
+  "name": "my-gitlife",
+  "version": "0.1.0",
+  "description": "Generate aesthetic SVG cards for GitHub READMEs from public GitHub activity.",
+  "private": false,
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "github-profile",
+    "readme",
+    "svg",
+    "github-api",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dRafaleD/my-gitlife.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dRafaleD/my-gitlife/issues"
+  },
+  "homepage": "https://github.com/dRafaleD/my-gitlife#readme",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "files": [
+    "dist",
+    "assets/examples"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "npm run clean",
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "start": "node dist/cli.js",
+    "cli": "npm run build && node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "fast-xml-parser": "^5.11.0",
+    "typescript": "5.9.3",
+    "vitest": "^3.2.7"
+  },
+  "type": "module",
+  "bin": {
+    "my-gitlife": "dist/cli.js"
+  }
+}
