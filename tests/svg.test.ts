@@ -203,7 +203,7 @@ describe('SVG visual layout regression', () => {
 
   it.each([
     ['story', 40, 44, 84],
-    ['compact', 32, 44, 72],
+    ['compact', 28, 36, 56],
     ['minimal', 24, 24, 56],
   ] as const)('aligns and clips the %s avatar to its declared frame', (style, x, y, size) => {
     const avatarDataUri = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAAB';
@@ -284,14 +284,20 @@ describe('SVG visual layout regression', () => {
     expect(XMLValidator.validate(svg)).toBe(true);
   });
 
-  it('keeps compact and minimal geometry unchanged by the flagship redesign', () => {
-    expect(dimensions(generateSvgCard(stats, { style: 'compact' }))).toEqual({ width: 820, height: 346 });
+  it('keeps the horizontal compact card dense and the minimal geometry unchanged', () => {
+    const compact = generateSvgCard(stats, { style: 'compact' });
+    expect(dimensions(compact)).toEqual({ width: 920, height: 224 });
+    expect(compact).toContain('data-compact-language-strip="true"');
+    expect(compact).toContain('data-compact-repository="true"');
+    expect(compact).toContain('data-compact-activity="true"');
+    expect(compact).not.toContain('A sample repository');
+    expect(compact).not.toContain('>FEATURED</text>');
     expect(dimensions(generateSvgCard(stats, { style: 'minimal' }))).toEqual({ width: 720, height: 196 });
   });
 
   it.each([
     ['story', 960, 420, 'editorial-story'],
-    ['compact', 820, 380, 'compact-split'],
+    ['compact', 920, 240, 'compact-horizontal'],
     ['minimal', 720, 240, 'minimal-strip'],
   ] as const)('keeps the %s layout distinct and inside its size ceiling', (style, width, maxHeight, layout) => {
     const svg = generateSvgCard(stats, { style });

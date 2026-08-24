@@ -8,7 +8,7 @@ My GitLife turns a GitHub username into public-data analytics and a self-contain
 
 ## Card examples
 
-### Minimal — recommended for profile READMEs
+### Minimal — clean profile strip
 
 <img src="./assets/examples/minimal.svg" width="720" alt="My GitLife minimal card example">
 
@@ -16,7 +16,7 @@ My GitLife turns a GitHub username into public-data analytics and a self-contain
 
 <img src="./assets/examples/story.svg" width="820" alt="My GitLife story card example">
 
-### Compact — balanced middle ground
+### Compact — dense profile card
 
 <img src="./assets/examples/compact.svg" width="760" alt="My GitLife compact card example">
 
@@ -36,6 +36,8 @@ This writes `gitlife.svg`. Add it to a README with:
 ```md
 ![My GitLife](./gitlife.svg)
 ```
+
+Run the same command again for a manual refresh. My GitLife refreshes its own generated card but refuses to overwrite an unrelated SVG.
 
 Run directly from GitHub without a global install:
 
@@ -68,7 +70,7 @@ Use `npm run cli -- --help` for the complete CLI reference. Output paths must be
 
 | Option | Values | Guidance |
 | --- | --- | --- |
-| `--style` | `story`, `compact`, `minimal` | `story` remains the default; `minimal` is recommended for most profile READMEs. |
+| `--style` | `story`, `compact`, `minimal` | Detailed showcase, dense horizontal card, or clean profile strip. `story` remains the default. |
 | `--theme` | `midnight`, `github`, `minimal` | Two dark palettes and one light neutral palette. |
 
 ## What the card measures
@@ -83,7 +85,7 @@ Use `npm run cli -- --help` for the complete CLI reference. Output paths must be
 
 My GitLife requests public profile, owned public repository, public event, and repository-language endpoints only. Private, forked, or differently owned repositories are filtered before analytics and output.
 
-`GITHUB_TOKEN` is optional and is used only as an Authorization header to increase GitHub API request limits. It is not written to the SVG or error messages. Avatar downloads are restricted to approved HTTPS GitHub hosts and safe raster formats; unsafe avatars fall back to initials.
+If GitHub's API limit is reached, the CLI reports the limit and includes its reset time when GitHub provides one. `GITHUB_TOKEN` is optional and is used only as an Authorization header to increase the request allowance. It is not written to the SVG or error messages. Avatar downloads are restricted to approved HTTPS GitHub hosts and safe raster formats; unsafe avatars fall back to initials.
 
 No hosted backend is involved. Generation runs locally or in your own GitHub Actions workflow. See [automatic updates](./docs/AUTOMATIC_UPDATES.md) for a copy-ready scheduled workflow.
 

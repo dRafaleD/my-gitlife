@@ -216,6 +216,43 @@ function topRepository(repository: RepositoryStat | undefined, x: number, y: num
   ].join('');
 }
 
+function compactLanguageStrip(languages: LanguageStat[], x: number, y: number, width: number, theme: CardTheme): string {
+  if (!languages.length) {
+    return text('No language data available', x, y + 24, `fill="${theme.muted}" font-size="10" font-family="${SANS_FONT}"`);
+  }
+
+  const shown = languages.slice(0, 5);
+  const labelCount = Math.min(languages.length, 5);
+  const labelStep = width / labelCount;
+  let cursorX = x;
+  const segments = shown.map((language, index) => {
+    const segmentWidth = Math.max(4, Math.round((language.percentage / 100) * width));
+    const color = theme.accents[index % theme.accents.length];
+    const segment = `<rect class="language-bar delay-${index + 1}" x="${cursorX}" y="${y}" width="${segmentWidth}" height="7" fill="${color}"/>`;
+    cursorX += segmentWidth;
+    return segment;
+  }).join('');
+  const labels = shown.slice(0, 4).map((language, index) => {
+    const color = theme.accents[index % theme.accents.length];
+    const labelX = x + index * labelStep;
+    return `<circle cx="${labelX + 3}" cy="${y + 29}" r="3" fill="${color}"/>${text(`${truncate(language.name, 10)} ${language.percentage}%`, labelX + 12, y + 32, `fill="${theme.muted}" font-size="8.5" font-family="${MONO_FONT}"`)}`;
+  }).join('');
+  const overflow = languages.length > 4
+    ? text(`+${languages.length - 4} more`, x + 4 * labelStep + 3, y + 32, `fill="${theme.muted}" font-size="8.5" font-family="${MONO_FONT}"`)
+    : '';
+
+  return `<g data-compact-language-strip="true"><rect x="${x}" y="${y}" width="${width}" height="7" rx="3.5" fill="${theme.border}"/>${segments}${labels}${overflow}</g>`;
+}
+
+function compactActivityStrip(activity: ActivitySummary, x: number, y: number, theme: CardTheme): string {
+  const active = Math.min(10, activity.activeDays);
+  return Array.from({ length: 10 }, (_, index) => {
+    const height = index < active ? 8 + (index % 3) * 3 : 4;
+    const fill = index < active ? theme.accents[2] : theme.border;
+    return `<rect class="activity-dot dot-${index + 1}" x="${x + index * 11}" y="${y - height}" width="6" height="${height}" rx="3" fill="${fill}"/>`;
+  }).join('');
+}
+
 function animationStyles(): string {
   return `<style>
     .reveal { animation: reveal .55s cubic-bezier(.2,.8,.2,1) both; }
@@ -302,50 +339,40 @@ function renderStory(context: RenderContext): string {
 
 function renderCompact(context: RenderContext): string {
   const {
-    profile, totals, languages, languageAnalysis, topRepositories, activity, generatedAt,
+    profile, totals, languages, languageAnalysis, topRepositories, activity,
   } = context.stats;
   const { theme } = context;
-  const bio = profile.bio ? truncate(profile.bio, 62) : 'A public GitHub journey, told through code.';
-
-  const chips = languageChips(languages, 4, 32, 308, 408, theme, {
-    lineHeight: 20,
-    chipHeight: 18,
-    fontSize: 9,
-    characterWidth: 5.4,
-    minimumAdvance: 70,
-    horizontalGap: 7,
-  });
-
-  const height = Math.max(346, 336 + Math.max(0, chips.lines - 1) * 20);
-  const leadingEvent = activity.eventsByType[0];
-  const activityLine = leadingEvent
-    ? `${activity.totalEvents} events · ${activity.activeDays} days`
-    : 'No recent events';
+  const bio = profile.bio ? truncate(profile.bio, 40) : 'Public GitHub work, at a glance.';
+  const topRepository = topRepositories[0];
+  const repositoryMetadata = topRepository
+    ? `${topRepository.language ?? 'No language'} · ★ ${compactNumber(topRepository.stars)} · ⑂ ${compactNumber(topRepository.forks)}`
+    : '';
+  const repositoryHighlight = topRepository
+    ? `<a href="${escapeXml(topRepository.url)}" data-top-repository="true" data-compact-repository="true"><rect x="572" y="136" width="320" height="46" rx="8" fill="${theme.surface}" stroke="${theme.border}"/><rect x="572" y="136" width="3" height="46" rx="1.5" fill="${theme.accents[3]}"/>${text(truncate(topRepository.name, 24), 590, 163, `fill="${theme.text}" font-size="13" font-weight="700" font-family="${SANS_FONT}"`)}${text(repositoryMetadata, 878, 162, `fill="${theme.muted}" font-size="8.5" text-anchor="end" font-family="${MONO_FONT}"`)}</a>`
+    : `<g data-compact-repository="true"><rect x="572" y="136" width="320" height="46" rx="8" fill="${theme.surface}" stroke="${theme.border}"/>${text('No public repository highlighted', 590, 163, `fill="${theme.muted}" font-size="10" font-family="${SANS_FONT}"`)}</g>`;
+  const activityLabel = activity.totalEvents
+    ? `${activity.totalEvents} EVENTS · ${activity.activeDays} DAYS`
+    : 'NO RECENT EVENTS';
 
   const body = [
-    `<rect x="0" y="0" width="4" height="${height}" rx="2" fill="${theme.accents[0]}"/>`,
-    text('MY GITLIFE', 32, 28, `fill="${theme.muted}" font-size="9" font-weight="700" font-family="${MONO_FONT}" letter-spacing="1.6"`),
-    `<g class="reveal">${avatar(context, 32, 44, 72)}</g>`,
-    `<a href="${escapeXml(profile.profileUrl)}">${text(truncate(profile.displayName, 28), 120, 66, `fill="${theme.text}" font-size="24" font-weight="760" font-family="${SANS_FONT}" letter-spacing="-0.5"`)}${text(`@${truncate(profile.username, 32)}`, 120, 86, `fill="${theme.accents[2]}" font-size="11" font-family="${MONO_FONT}"`)}</a>`,
-    text(bio, 120, 108, `fill="${theme.muted}" font-size="11" font-family="${SANS_FONT}"`),
-    text(membership(profile.joinedAt, generatedAt), 120, 128, `fill="${theme.muted}" font-size="9" font-family="${MONO_FONT}"`),
-    inlineStat('REPOS', totals.publicRepositories, 500, 72, theme, 0),
-    inlineStat('STARS', totals.totalStars, 580, 72, theme, 1),
-    inlineStat('FORKS', totals.totalForks, 660, 72, theme, 2),
-    inlineStat('FOLLOWERS', totals.followers, 740, 72, theme, 3),
-    `<line x1="32" y1="148" x2="788" y2="148" stroke="${theme.border}"/>`,
-    text('LANGUAGES', 32, 172, `fill="${theme.accents[1]}" font-size="9" font-weight="700" font-family="${MONO_FONT}" letter-spacing="1.4"`),
-    text(languageSourceLabel(languageAnalysis), 440, 172, `fill="${theme.muted}" font-size="7" text-anchor="end" font-family="${MONO_FONT}" letter-spacing="0.5"`),
-    languageRows(languages, 32, 196, 408, theme, 24, 4, 3),
-    chips.markup,
-    `<line x1="466" y1="164" x2="466" y2="${height - 24}" stroke="${theme.border}"/>`,
-    topRepository(topRepositories[0], 492, 164, 296, theme),
-    `<line x1="492" y1="284" x2="788" y2="284" stroke="${theme.border}"/>`,
-    text('RECENT', 492, 308, `fill="${theme.accents[2]}" font-size="9" font-weight="700" font-family="${MONO_FONT}" letter-spacing="1.2"`),
-    text(activityLine, 492, 330, `fill="${theme.muted}" font-size="9" font-family="${MONO_FONT}"`),
-    activityDots(activity, 632, 306, theme, 12),
+    `<rect x="0" y="0" width="4" height="224" rx="2" fill="${theme.accents[0]}"/>`,
+    text('MY GITLIFE', 28, 22, `fill="${theme.muted}" font-size="8" font-weight="700" font-family="${MONO_FONT}" letter-spacing="1.4"`),
+    `<g class="reveal">${avatar(context, 28, 36, 56)}</g>`,
+    `<a href="${escapeXml(profile.profileUrl)}">${text(truncate(profile.displayName, 25), 100, 57, `fill="${theme.text}" font-size="20" font-weight="760" font-family="${SANS_FONT}" letter-spacing="-0.4"`)}${text(`@${truncate(profile.username, 28)}`, 100, 77, `fill="${theme.accents[2]}" font-size="9.5" font-family="${MONO_FONT}"`)}</a>`,
+    text(bio, 100, 97, `fill="${theme.muted}" font-size="9.5" font-family="${SANS_FONT}"`),
+    `<line x1="404" y1="30" x2="404" y2="102" stroke="${theme.border}"/>`,
+    inlineStat('REPOS', totals.publicRepositories, 432, 58, theme, 0),
+    inlineStat('STARS', totals.totalStars, 540, 58, theme, 1),
+    inlineStat('FORKS', totals.totalForks, 648, 58, theme, 2),
+    inlineStat('FOLLOWERS', totals.followers, 768, 58, theme, 3),
+    `<line x1="28" y1="116" x2="892" y2="116" stroke="${theme.border}"/>`,
+    text(`LANGUAGES · ${languageSourceLabel(languageAnalysis)}`, 28, 136, `fill="${theme.muted}" font-size="7.5" font-family="${MONO_FONT}" letter-spacing="0.45"`),
+    compactLanguageStrip(languages, 28, 149, 510, theme),
+    `<line x1="552" y1="132" x2="552" y2="204" stroke="${theme.border}"/>`,
+    repositoryHighlight,
+    `<g data-compact-activity="true">${text(activityLabel, 572, 207, `fill="${theme.muted}" font-size="8" font-family="${MONO_FONT}" letter-spacing="0.4"`)}${compactActivityStrip(activity, 780, 207, theme)}</g>`,
   ].join('');
-  return frame('compact', 820, height, context, `<g data-layout="compact-split">${body}</g>`);
+  return frame('compact', 920, 224, context, `<g data-layout="compact-horizontal">${body}</g>`);
 }
 
 function renderMinimal(context: RenderContext): string {
